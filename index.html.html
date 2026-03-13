@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reconfigurable Battery Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #f1f5f9;
+  --surface:   #ffffff;
+  --surface2:  #f8fafc;
+  --border:    #e2e8f0;
+  --border2:   #cbd5e1;
+
+  --blue:      #1d4ed8;
+  --blue-mid:  #3b82f6;
+  --blue-lt:   #eff6ff;
+  --blue-line: #bfdbfe;
+
+  --green:     #15803d;
+  --green-mid: #22c55e;
+  --green-lt:  #f0fdf4;
+  --green-line:#bbf7d0;
+
+  --amber:     #b45309;
+  --amber-mid: #f59e0b;
+  --amber-lt:  #fffbeb;
+  --amber-line:#fde68a;
+
+  --red:       #b91c1c;
+  --red-mid:   #ef4444;
+  --red-lt:    #fef2f2;
+  --red-line:  #fecaca;
+
+  --slate:     #64748b;
+  --slate-lt:  #f8fafc;
+
+  --text:      #0f172a;
+  --text2:     #334155;
+  --text3:     #64748b;
+  --text4:     #94a3b8;
+
+  --font:    'DM Sans', sans-serif;
+  --mono:    'JetBrains Mono', monospace;
+  --display: 'Orbitron', sans-serif;
+
+  --r:  8px;
+  --r2: 12px;
+  --sh: 0 1px 2px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+  --sh2:0 4px 16px rgba(0,0,0,0.08);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:var(--font); font-size:14px; }
+
+/* ─── HARDWARE NOT CONNECTED BANNER ─────────────── */
+.hw-banner {
+  background: linear-gradient(90deg, #7c2d12 0%, #b91c1c 50%, #7c2d12 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease infinite;
+  padding: 10px 28px;
+  display: flex; align-items:center; justify-content:space-between; gap:12px;
+}
+@keyframes shimmer { 0%{background-position:0% 0} 50%{background-position:100% 0} 100%{background-position:0% 0} }
+.hw-banner-left { display:flex; align-items:center; gap:10px; }
+.hw-icon {
+  width:28px; height:28px; border-radius:50%;
+  background:rgba(255,255,255,0.15);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; animation: blink 1.4s ease infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+.hw-title { color:#fff; font-weight:700; font-size:13px; letter-spacing:0.3px; }
+.hw-sub   { color:rgba(255,255,255,0.75); font-size:11px; margin-top:1px; font-family:var(--mono); }
+.hw-badge {
+  background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);
+  color:#fff; font-family:var(--mono); font-size:11px; font-weight:500;
+  padding:4px 12px; border-radius:20px; white-space:nowrap;
+}
+
+/* ─── HEADER ─────────────────────────────────────── */
+.header {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 28px; height:58px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+  box-shadow:var(--sh);
+}
+.logo-wrap { display:flex; align-items:center; gap:12px; }
+.logo {
+  width:38px; height:38px; border-radius:9px;
+  background:linear-gradient(135deg, #1d4ed8, #3b82f6);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--display); font-size:9px; color:#fff; font-weight:800;
+  box-shadow:0 2px 8px rgba(29,78,216,0.35);
+}
+.header-title { font-family:var(--display); font-size:12px; color:var(--text); letter-spacing:0.5px; font-weight:800; }
+.header-sub   { font-size:11px; color:var(--text4); margin-top:1px; }
+.header-right { display:flex; align-items:center; gap:8px; }
+.pill {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:5px 12px; border-radius:20px;
+  font-size:11px; font-weight:600; border:1px solid; letter-spacing:0.3px;
+}
+.pill.blue     { background:var(--blue-lt);  border-color:var(--blue-line); color:var(--blue); }
+.pill.offline  { background:var(--red-lt);   border-color:var(--red-line);  color:var(--red);  }
+.pill.slate    { background:var(--slate-lt); border-color:var(--border2);   color:var(--slate);}
+.pill .dot { width:6px; height:6px; border-radius:50%; }
+.pill.blue    .dot { background:var(--blue-mid); }
+.pill.offline .dot { background:var(--red-mid); animation:blink 1.2s infinite; }
+.sys-time { font-family:var(--mono); font-size:11px; color:var(--text4); }
+
+/* ─── MAIN ────────────────────────────────────────── */
+.main { padding:20px 28px 40px; max-width:1600px; }
+
+.sec {
+  font-size:10px; font-weight:700; letter-spacing:2px;
+  text-transform:uppercase; color:var(--text4);
+  margin:22px 0 10px;
+  display:flex; align-items:center; gap:10px;
+}
+.sec::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* ─── PANEL ───────────────────────────────────────── */
+.card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r2); padding:18px 20px;
+  box-shadow:var(--sh);
+}
+.card-head {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.card-title {
+  font-size:11px; font-weight:700; letter-spacing:0.8px;
+  text-transform:uppercase; color:var(--text3);
+  display:flex; align-items:center; gap:7px;
+}
+.card-title .ic {
+  width:20px; height:20px; border-radius:5px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px;
+}
+.ic-blue   { background:var(--blue-lt);  }
+.ic-green  { background:var(--green-lt); }
+.ic-amber  { background:var(--amber-lt); }
+.ic-red    { background:var(--red-lt);   }
+.ic-slate  { background:var(--slate-lt); }
+.no-data-chip {
+  font-family:var(--mono); font-size:10px;
+  padding:2px 8px; border-radius:4px;
+  background:var(--red-lt); color:var(--red);
+  border:1px solid var(--red-line); font-weight:500;
+}
+
+/* ─── GRIDS ───────────────────────────────────────── */
+.g3  { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.g6  { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; }
+.g2  { display:grid; grid-template-columns:1fr 1fr;       gap:14px; }
+.g21 { display:grid; grid-template-columns:2fr 1fr;       gap:14px; }
+.g211{ display:grid; grid-template-columns:2fr 1fr 1fr;   gap:14px; }
+
+/* ─── BIG METRICS ─────────────────────────────────── */
+.metric {
+  display:flex; flex-direction:column; align-items:center;
+  padding:10px 0 4px;
+}
+.metric-num {
+  font-family:var(--display); font-size:42px; font-weight:800;
+  color:var(--border2); line-height:1; letter-spacing:-1px;
+}
+.metric-unit { font-size:12px; color:var(--text4); margin-top:6px; font-weight:500; }
+.metric-desc { font-size:11px; color:var(--text4); margin-top:3px; font-family:var(--mono); }
+.metric-na {
+  margin-top:8px; display:inline-flex; align-items:center; gap:5px;
+  font-family:var(--mono); font-size:10px; color:var(--red);
+  background:var(--red-lt); border:1px solid var(--red-line);
+  padding:3px 9px; border-radius:4px;
+}
+
+/* ─── CELL CARD ───────────────────────────────────── */
+.cell {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:var(--r2); padding:14px 12px;
+  box-shadow:var(--sh); position:relative; overflow:hidden;
+}
+.cell::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--border);
+}
+.cell-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.cell-id { font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text3); }
+.cell-offline {
+  font-family:var(--mono); font-size:9px; padding:1px 6px;
+  background:var(--red-lt); color:var(--red); border:1px solid var(--red-line);
+  border-radius:3px;
+}
+.cell-v {
+  font-family:var(--display); font-size:24px; font-weight:800;
+  color:var(--border2); text-align:center; line-height:1;
+}
+.cell-v-lbl { font-size:10px; color:var(--text4); text-align:center; margin-top:2px; font-family:var(--mono); }
+.bar-row { display:flex; align-items:center; gap:7px; margin-top:9px; }
+.bar-lbl  { font-family:var(--mono); font-size:9px; color:var(--text4); min-width:28px; }
+.bar-track{ flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:2px; width:0%; background:var(--border2); }
+.bar-num  { font-family:var(--mono); font-size:10px; color:var(--text4); min-width:30px; text-align:right; }
+.cell-temp {
+  display:inline-flex; align-items:center; gap:4px; margin-top:8px;
+  font-family:var(--mono); font-size:10px; color:var(--text4);
+  padding:3px 8px; border-radius:4px;
+  background:var(--slate-lt); border:1px solid var(--border);
+}
+.cell-footer { font-family:var(--mono); font-size:9px; color:var(--text4); margin-top:6px; }
+
+/* ─── SWITCH SECTION ──────────────────────────────── */
+.topo-btns { display:flex; align-items:center; justify-content:center; gap:10px; margin:10px 0; }
+.topo-btn {
+  padding:10px 22px; border-radius:8px;
+  font-family:var(--display); font-size:11px; font-weight:600; letter-spacing:1px;
+  border:2px solid; cursor:pointer; background:transparent; transition:all 0.22s;
+}
+.topo-btn.series   { border-color:var(--blue-line); color:var(--text4); }
+.topo-btn.parallel { border-color:var(--green-line); color:var(--text4); }
+.topo-btn.series.on   {
+  background:var(--blue-lt); border-color:var(--blue);
+  color:var(--blue); box-shadow:0 0 0 4px var(--blue-line);
+}
+.topo-btn.parallel.on {
+  background:var(--green-lt); border-color:var(--green);
+  color:var(--green); box-shadow:0 0 0 4px var(--green-line);
+}
+.topo-arrow { color:var(--text4); font-size:20px; }
+
+.topo-svg-box {
+  border:1px solid var(--border); border-radius:var(--r);
+  background:var(--slate-lt); padding:10px; margin-top:10px;
+}
+svg.topo-svg { width:100%; height:96px; display:block; }
+
+.sw-btn {
+  width:100%; margin-top:12px; padding:13px;
+  border-radius:var(--r); font-family:var(--display);
+  font-size:11px; font-weight:700; letter-spacing:1.5px;
+  border:2px solid var(--blue); background:var(--blue-lt);
+  color:var(--blue); cursor:pointer; transition:all 0.22s;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.sw-btn:hover   { background:var(--blue); color:#fff; box-shadow:0 4px 14px rgba(29,78,216,0.25); }
+.sw-btn:active  { transform:scale(0.985); }
+.sw-btn:disabled{ opacity:0.45; cursor:not-allowed; }
+.sw-status {
+  margin-top:8px; font-family:var(--mono); font-size:10px;
+  color:var(--text4); min-height:16px; text-align:center;
+}
+.mode-info-box {
+  background:var(--surface2); border:1px solid var(--border); border-radius:var(--r);
+  padding:12px 14px; margin-top:12px;
+  font-family:var(--mono); font-size:11px; color:var(--text3); line-height:1.8;
+}
+.mode-info-box b { color:var(--text2); }
+
+/* ─── ALGO CARDS ──────────────────────────────────── */
+.stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.stat-item {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--r); padding:11px 12px;
+}
+.stat-lbl { font-size:10px; font-weight:600; letter-spacing:0.5px; color:var(--text4); margin-bottom:4px; }
+.stat-val { font-family:var(--display); font-size:17px; color:var(--border2); font-weight:700; }
+
+/* ─── KALMAN ──────────────────────────────────────── */
+.k-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.k-lbl { font-family:var(--mono); font-size:11px; color:var(--text3); min-width:30px; font-weight:600; }
+.k-track{ flex:1; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+.k-fill { height:100%; border-radius:3px; width:0%; background:var(--border2); }
+.k-num  { font-family:var(--display); font-size:12px; color:var(--border2); min-width:46px; text-align:right; font-weight:700; }
+
+/* ─── RF TABLE ────────────────────────────────────── */
+.rf-tbl { width:100%; border-collapse:collapse; }
+.rf-tbl th {
+  padding:6px 8px; text-align:left; font-size:10px; font-weight:700;
+  letter-spacing:0.5px; color:var(--text4); background:var(--surface2);
+  border-bottom:1.5px solid var(--border); text-transform:uppercase;
+}
+.rf-tbl td { padding:8px 8px; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--text4); }
+
+/* ─── CHART PLACEHOLDER ───────────────────────────── */
+.chart-ph {
+  height:130px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:6px;
+  border:1.5px dashed var(--border2); border-radius:var(--r);
+  background:var(--surface2);
+}
+.chart-ph-icon { font-size:22px; opacity:0.35; }
+.chart-ph-txt  { font-size:12px; color:var(--text4); }
+.chart-ph-sub  { font-family:var(--mono); font-size:10px; color:var(--text4); }
+
+/* ─── LOG ─────────────────────────────────────────── */
+.log-box {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--r); padding:10px;
+  height:150px; overflow-y:auto;
+  font-family:var(--mono); font-size:11px; line-height:1.75;
+}
+.log-box::-webkit-scrollbar { width:3px; }
+.log-box::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+.log-ts    { color:var(--text4); margin-right:6px; font-size:10px; }
+.l-info    { color:var(--text3); }
+.l-good    { color:var(--green); }
+.l-warn    { color:var(--amber); }
+.l-danger  { color:var(--red);   font-weight:600; }
+.log-btns  { display:flex; gap:8px; margin-top:8px; }
+.log-btn {
+  flex:1; padding:7px; border-radius:6px; cursor:pointer;
+  font-family:var(--mono); font-size:11px; transition:all 0.18s;
+}
+.lb-clear  { border:1px solid var(--border); background:var(--surface); color:var(--text3); }
+.lb-export { border:1px solid var(--blue); background:var(--blue-lt); color:var(--blue); }
+.log-btn:hover { filter:brightness(0.95); }
+
+/* ─── CODE ────────────────────────────────────────── */
+.code-tabs { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
+.ctab {
+  padding:5px 13px; border-radius:6px; border:1px solid var(--border);
+  background:var(--surface); color:var(--text4); font-family:var(--mono);
+  font-size:11px; cursor:pointer; transition:all 0.18s;
+}
+.ctab.on { border-color:var(--blue); background:var(--blue-lt); color:var(--blue); font-weight:600; }
+.code-wrap { border:1px solid var(--border); border-radius:var(--r); overflow:hidden; }
+.code-hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 14px; background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  font-family:var(--mono); font-size:11px; color:var(--text3);
+}
+.code-lang { color:var(--blue); font-size:10px; letter-spacing:1px; font-weight:700; }
+pre {
+  padding:14px; font-family:var(--mono); font-size:11px;
+  line-height:1.8; overflow-x:auto; background:#fafbfc;
+  max-height:260px; overflow-y:auto; color:var(--text);
+}
+pre::-webkit-scrollbar { width:4px; height:4px; }
+pre::-webkit-scrollbar-thumb { background:var(--border2); }
+.kw  { color:#1d4ed8; font-weight:600; }
+.fn  { color:#15803d; }
+.cm  { color:#94a3b8; font-style:italic; }
+.str { color:#b45309; }
+.num { color:#7c3aed; }
+
+/* ─── SWITCH OVERLAY ──────────────────────────────── */
+.sw-overlay {
+  display:none; position:fixed; inset:0; z-index:999;
+  background:rgba(241,245,249,0.8); backdrop-filter:blur(6px);
+  align-items:center; justify-content:center;
+}
+.sw-overlay.show { display:flex; }
+.sw-modal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; padding:32px 40px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.12);
+  text-align:center; min-width:320px;
+}
+.sw-spinner {
+  width:40px; height:40px; border-radius:50%;
+  border:3px solid var(--border); border-top-color:var(--blue);
+  animation:spin 0.65s linear infinite; margin:0 auto 16px;
+}
+@keyframes spin { to{transform:rotate(360deg);} }
+.sw-step { font-family:var(--display); font-size:11px; color:var(--blue); letter-spacing:1px; font-weight:700; }
+.sw-msg  { font-family:var(--mono); font-size:11px; color:var(--text3); margin-top:6px; }
+.sw-prog { margin-top:16px; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+.sw-bar  { height:100%; background:linear-gradient(90deg,var(--blue-mid),var(--blue)); border-radius:3px; width:0%; transition:width 0.45s ease; }
+
+.sep { border:none; border-top:1px solid var(--border); margin:14px 0; }
+
+@media(max-width:1200px){
+  .g6  { grid-template-columns:repeat(3,1fr); }
+  .g3,.g211 { grid-template-columns:1fr 1fr; }
+}
+@media(max-width:800px){
+  .g2,.g21,.g3,.g211 { grid-template-columns:1fr; }
+  .g6 { grid-template-columns:repeat(2,1fr); }
+  .header { height:auto; padding:12px; flex-wrap:wrap; gap:8px; }
+  .main { padding:14px 14px 32px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HARDWARE NOT CONNECTED BANNER ═══ -->
+<div class="hw-banner">
+  <div class="hw-banner-left">
+    <div class="hw-icon">⚠</div>
+    <div>
+      <div class="hw-title">Hardware Not Connected</div>
+      <div class="hw-sub">ESP32-S3N16R8 is offline — all readings are unavailable. Connect via USB or Wi-Fi to populate live data.</div>
+    </div>
+  </div>
+  <div class="hw-badge">⬤ OFFLINE · No Sensor Data</div>
+</div>
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div class="logo-wrap">
+    <div>
+      <div class="header-title">Reconfigurable Battery Management System</div>
+      <div class="header-sub">6-Cell Pack</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="pill offline"><div class="dot"></div>Hardware Offline</div>
+    <div class="pill blue"><div class="dot"></div><span id="modeLabel">Series Mode</span></div>
+    <div class="sys-time" id="sysTime">--:--:--</div>
+  </div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+
+  <!-- Pack Overview -->
+  <div class="sec">Pack Overview</div>
+  <div class="g3">
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-blue">⚡</div>Pack Voltage</div>
+        <div class="no-data-chip">NO DATA</div>
+      </div>
+      <div class="metric">
+        <div class="metric-num">0.000</div>
+        <div class="metric-unit">Volts — Series Configuration</div>
+        <div class="metric-desc">6 × 3.7 V nominal · sum = ~22.2 V</div>
+        <div class="metric-na">⚠ Sensor not connected</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-green">🔋</div>State of Charge</div>
+        <div class="no-data-chip">NO DATA</div>
+      </div>
+      <div class="metric">
+        <div class="metric-num">0.0</div>
+        <div class="metric-unit">% SOC — Kalman Filtered</div>
+        <div class="metric-desc">Awaiting Pepper circuit readings</div>
+        <div class="metric-na">⚠ Sensor not connected</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-amber">🌡</div>Pack Temperature</div>
+        <div class="no-data-chip">NO DATA</div>
+      </div>
+      <div class="metric">
+        <div class="metric-num">0.0</div>
+        <div class="metric-unit">°C — NTC Thermistor Average</div>
+        <div class="metric-desc">Limit: 45 °C warn · 60 °C cutoff</div>
+        <div class="metric-na">⚠ Sensor not connected</div>
+      </div>
+    </div>
+
+  </div><!-- /g3 -->
+
+  <!-- Individual Cells -->
+  <div class="sec">Individual Cell Monitoring — 6 Cells</div>
+  <div class="g6" id="cellGrid"></div>
+
+  <!-- Topology Switch -->
+  <div class="sec">Configuration Switching</div>
+  <div class="g21">
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-blue">🔀</div>Topology Control</div>
+        <div class="no-data-chip">VISUAL ONLY — No Hardware</div>
+      </div>
+      <div class="topo-btns">
+        <button class="topo-btn series on" id="btnS" onclick="setMode('series')">SERIES</button>
+        <div class="topo-arrow">⇌</div>
+        <button class="topo-btn parallel"   id="btnP" onclick="setMode('parallel')">PARALLEL</button>
+      </div>
+      <div class="topo-svg-box">
+        <svg class="topo-svg" id="topoSvg" viewBox="0 0 360 96"></svg>
+      </div>
+      <button class="sw-btn" id="swBtn" onclick="doSwitch()">
+        ⚡ SWITCH TOPOLOGY
+      </button>
+      <div class="sw-status" id="swStatus">Break-before-make logic · SPDT relays · 50 ms mechanical delay</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-slate">⚖</div>Balancing &amp; Efficiency</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-item"><div class="stat-lbl">Balancing Mode</div><div class="stat-val" id="balMode">—</div></div>
+        <div class="stat-item"><div class="stat-lbl">Energy Wasted</div><div class="stat-val">—</div></div>
+        <div class="stat-item"><div class="stat-lbl">Charge Efficiency</div><div class="stat-val">—</div></div>
+        <div class="stat-item"><div class="stat-lbl">Thermal Load</div><div class="stat-val">—</div></div>
+        <div class="stat-item"><div class="stat-lbl">ΔV Cell Spread</div><div class="stat-val">—</div></div>
+        <div class="stat-item"><div class="stat-lbl">Weakest Cell</div><div class="stat-val">—</div></div>
+      </div>
+      <div class="mode-info-box" id="modeInfo">
+        <b>Series mode:</b> Cells linked end-to-end.<br>
+        Voltages add up → high output for discharge.<br>
+        Switch to <b>Parallel</b> when charging for natural self-balancing.
+      </div>
+    </div>
+
+  </div><!-- /g21 -->
+
+  <!-- History Charts -->
+  <div class="sec">Sensor History</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-blue">📈</div>Cell Voltage History</div>
+        <div class="no-data-chip">NO DATA</div>
+      </div>
+      <div class="chart-ph">
+        <div class="chart-ph-icon">📊</div>
+        <div class="chart-ph-txt">No voltage data available</div>
+        <div class="chart-ph-sub">Connect ESP32 hardware to populate chart</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-amber">🌡</div>Temperature History</div>
+        <div class="no-data-chip">NO DATA</div>
+      </div>
+      <div class="chart-ph">
+        <div class="chart-ph-icon">🌡</div>
+        <div class="chart-ph-txt">No temperature data available</div>
+        <div class="chart-ph-sub">NTC sensor reading required</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Algorithm Intelligence -->
+  <div class="sec">Algorithm Intelligence</div>
+  <div class="g211">
+
+    <!-- Kalman + LR -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-blue">📡</div>Kalman Filter — SOC Estimate per Cell</div>
+        <div class="no-data-chip">STANDBY</div>
+      </div>
+      <div id="kalmanDisplay"></div>
+      <div class="sep"></div>
+      <div class="card-title" style="margin-bottom:10px;"><div class="ic ic-slate">📉</div>Linear Regression — Capacity Fade</div>
+      <div class="chart-ph" style="height:86px;">
+        <div class="chart-ph-icon">📉</div>
+        <div class="chart-ph-txt">No cycle data yet</div>
+      </div>
+      <div class="stat-grid" style="margin-top:10px;">
+        <div class="stat-item"><div class="stat-lbl">Slope (mAh/cycle)</div><div class="stat-val">—</div></div>
+        <div class="stat-item"><div class="stat-lbl">R² Score</div><div class="stat-val">—</div></div>
+        <div class="stat-item"><div class="stat-lbl">Predicted EOL</div><div class="stat-val">—</div></div>
+        <div class="stat-item"><div class="stat-lbl">Data Points</div><div class="stat-val">0</div></div>
+      </div>
+    </div>
+
+    <!-- Random Forest -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-green">🌲</div>Random Forest — Predictive Maintenance</div>
+        <div class="no-data-chip">STANDBY</div>
+      </div>
+      <table class="rf-tbl">
+        <thead><tr><th>Cell</th><th>Health</th><th>Risk</th><th>RUL</th></tr></thead>
+        <tbody id="rfTbody"></tbody>
+      </table>
+      <div class="sep"></div>
+      <div class="stat-grid">
+        <div class="stat-item"><div class="stat-lbl">Trees</div><div class="stat-val" style="color:var(--text2);">100</div></div>
+        <div class="stat-item"><div class="stat-lbl">Features</div><div class="stat-val" style="color:var(--text2);">5</div></div>
+        <div class="stat-item"><div class="stat-lbl">OOB Score</div><div class="stat-val">—</div></div>
+        <div class="stat-item"><div class="stat-lbl">Next Alert</div><div class="stat-val">—</div></div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="ic ic-slate">📋</div>System Event Log</div>
+      </div>
+      <div class="log-box" id="logBox"></div>
+      <div class="log-btns">
+        <button class="log-btn lb-clear"  onclick="clearLog()">Clear</button>
+        <button class="log-btn lb-export" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
+    </div>
+
+  </div><!-- /g211 -->
+
+<!-- ═══ SWITCH OVERLAY ═══ -->
+<div class="sw-overlay" id="swOverlay">
+  <div class="sw-modal">
+    <div class="sw-spinner"></div>
+    <div class="sw-step" id="swStep">INITIATING</div>
+    <div class="sw-msg"  id="swMsg">Please wait…</div>
+    <div class="sw-prog"><div class="sw-bar" id="swBar"></div></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  RBMS Dashboard · White theme · Zero / offline state
+//  Switch button is fully functional with animation
+// ════════════════════════════════════════════════════
+
+const N = 6;
+let mode = 'series';
+
+// ── Clock ────────────────────────────────────────────
+function ts() {
+  return [new Date().getHours(), new Date().getMinutes(), new Date().getSeconds()]
+    .map(n => String(n).padStart(2,'0')).join(':');
+}
+setInterval(() => document.getElementById('sysTime').textContent = ts(), 1000);
+
+// ── Log ──────────────────────────────────────────────
+function log(msg, type='info') {
+  const el  = document.getElementById('logBox');
+  const div = document.createElement('div');
+  div.className = `l-${type}`;
+  div.innerHTML = `<span class="log-ts">[${ts()}]</span>${msg}`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  while(el.children.length > 120) el.removeChild(el.firstChild);
+}
+function clearLog() {
+  document.getElementById('logBox').innerHTML = '';
+  log('Log cleared.','info');
+}
+function exportCSV() {
+  let csv = 'Time,Cell,Voltage_V,SOC_%,Temp_C,Health_%,RUL,Risk\n';
+  for(let i=1;i<=N;i++) csv += `${ts()},C${i},0.000,0.0,0.0,0,—,—\n`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = `RBMS_${Date.now()}.csv`;
+  a.click();
+  log('CSV exported — all values zero (hardware offline).','warn');
+}
+
+// ── Cell Cards ───────────────────────────────────────
+function renderCells() {
+  const g = document.getElementById('cellGrid');
+  g.innerHTML = '';
+  for(let i=0;i<N;i++){
+    const d = document.createElement('div');
+    d.className = 'cell';
+    d.innerHTML = `
+      <div class="cell-top">
+        <div class="cell-id">CELL ${i+1} · C${i+1}</div>
+        <div class="cell-offline">OFFLINE</div>
+      </div>
+      <div class="cell-v">0.000</div>
+      <div class="cell-v-lbl">V (Kalman filtered)</div>
+      <div class="bar-row">
+        <div class="bar-lbl">SOC</div>
+        <div class="bar-track"><div class="bar-fill"></div></div>
+        <div class="bar-num">0%</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-lbl">Hlth</div>
+        <div class="bar-track"><div class="bar-fill"></div></div>
+        <div class="bar-num">0%</div>
+      </div>
+      <div class="cell-temp">🌡 0.0 °C</div>
+      <div class="cell-footer">IR: — mΩ &nbsp;·&nbsp; RUL: — cycles</div>`;
+    g.appendChild(d);
+  }
+}
+
+// ── Kalman Display ───────────────────────────────────
+function renderKalman() {
+  document.getElementById('kalmanDisplay').innerHTML =
+    Array.from({length:N},(_,i)=>`
+      <div class="k-row">
+        <div class="k-lbl">C${i+1}</div>
+        <div class="k-track"><div class="k-fill"></div></div>
+        <div class="k-num">0.0%</div>
+      </div>`).join('');
+}
+
+// ── RF Table ─────────────────────────────────────────
+function renderRF() {
+  document.getElementById('rfTbody').innerHTML =
+    Array.from({length:N},(_,i)=>
+      `<tr><td>C${i+1}</td><td>—</td><td>—</td><td>—</td></tr>`
+    ).join('');
+}
+
+// ── Topology SVG ─────────────────────────────────────
+function drawTopo() {
+  const svg = document.getElementById('topoSvg');
+  const W=360, cW=38, gap=14, sx=18, my=48;
+  let h='';
+  if(mode==='series') {
+    for(let i=0;i<N;i++){
+      const x = sx+i*(cW+gap);
+      h+=`<rect x="${x}" y="${my-16}" width="${cW}" height="32" rx="6"
+            fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="${x+cW/2}" y="${my-5}" text-anchor="middle"
+            font-family="Orbitron,sans-serif" font-size="8" fill="#1d4ed8" font-weight="700">C${i+1}</text>
+          <text x="${x+cW/2}" y="${my+9}" text-anchor="middle"
+            font-family="JetBrains Mono,monospace" font-size="9" fill="#64748b">0.000V</text>`;
+      if(i<N-1) h+=`<line x1="${x+cW}" y1="${my}" x2="${x+cW+gap}" y2="${my}" stroke="#3b82f6" stroke-width="2"/>`;
+    }
+    h+=`<text x="${W-6}" y="${my+4}" text-anchor="end"
+          font-family="Orbitron" font-size="10" fill="#1d4ed8" font-weight="700">Σ = 0.000 V</text>`;
+  } else {
+    const bT=my-28, bB=my+28;
+    h+=`<line x1="8" y1="${bT}" x2="${W-8}" y2="${bT}" stroke="#22c55e" stroke-width="2.5"/>
+        <text x="10" y="${bT-5}" font-family="JetBrains Mono" font-size="9" fill="#15803d" font-weight="600">+ BUS  ·  self-balancing</text>
+        <line x1="8" y1="${bB}" x2="${W-8}" y2="${bB}" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="10" y="${bB+13}" font-family="JetBrains Mono" font-size="9" fill="#94a3b8">− BUS</text>`;
+    for(let i=0;i<N;i++){
+      const x = sx+i*(cW+gap);
+      h+=`<rect x="${x}" y="${bT+4}" width="${cW}" height="${bB-bT-8}" rx="6"
+            fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="${x+cW/2}" y="${my-1}" text-anchor="middle"
+            font-family="Orbitron" font-size="8" fill="#15803d" font-weight="700">C${i+1}</text>
+          <text x="${x+cW/2}" y="${my+11}" text-anchor="middle"
+            font-family="JetBrains Mono" font-size="9" fill="#64748b">0.000V</text>`;
+    }
+    h+=`<text x="${W-6}" y="${my+4}" text-anchor="end"
+          font-family="Orbitron" font-size="10" fill="#15803d" font-weight="700">0.000 V</text>`;
+  }
+  svg.innerHTML = h;
+}
+
+// ── Set Mode ─────────────────────────────────────────
+function setMode(m) {
+  if(mode===m) return;
+  mode = m;
+  document.getElementById('btnS').classList.toggle('on', m==='series');
+  document.getElementById('btnP').classList.toggle('on', m==='parallel');
+  document.getElementById('modeLabel').textContent = m==='series' ? 'Series Mode' : 'Parallel Mode';
+  document.getElementById('swStatus').textContent = m==='series'
+    ? 'Series active · Discharge mode · Vout = Σ(Vcells)'
+    : 'Parallel active · Self-balancing charge mode · All cells equalise naturally';
+  document.getElementById('balMode').textContent   = m==='parallel' ? 'PARALLEL' : 'PASSIVE';
+  document.getElementById('modeInfo').innerHTML = m==='series'
+    ? '<b>Series mode:</b> Cells linked end-to-end.<br>Voltages add up → high output for discharge.<br>Switch to <b>Parallel</b> when charging for natural self-balancing.'
+    : '<b>Parallel mode:</b> All cells share same +/− bus.<br>Lower-voltage cells draw current automatically.<br><b>No balancing resistors needed</b> — physics handles it.';
+  drawTopo();
+}
+
+// ── Manual Switch with overlay ───────────────────────
+function doSwitch() {
+  const btn     = document.getElementById('swBtn');
+  const overlay = document.getElementById('swOverlay');
+  const stepEl  = document.getElementById('swStep');
+  const msgEl   = document.getElementById('swMsg');
+  const barEl   = document.getElementById('swBar');
+  const next    = mode==='series' ? 'parallel' : 'series';
+
+  btn.disabled = true;
+  overlay.classList.add('show');
+
+  const steps = [
+    { t:0,    pct:0,   s:'STEP 1 — BREAK',         m:'Sending LOW to all 12 relay coils…' },
+    { t:380,  pct:28,  s:'BREAK IN PROGRESS',       m:'Relay contacts physically travelling (50 ms delay)…' },
+    { t:760,  pct:52,  s:'BREAK COMPLETE',          m:'All contacts open · Pack fully isolated · Safe to switch.' },
+    { t:1050, pct:68,  s:`STEP 2 — MAKE ${next.toUpperCase()}`, m:`Energising ${next} relay contacts sequentially…` },
+    { t:1380, pct:88,  s:'MAKE IN PROGRESS',        m:'Waiting contact bounce settle (10 ms)…' },
+    { t:1750, pct:100, s:'SWITCH COMPLETE ✓',       m:`${next.toUpperCase()} topology active.` },
+  ];
+
+  steps.forEach(s => {
+    setTimeout(() => {
+      stepEl.textContent = s.s;
+      msgEl.textContent  = s.m;
+      barEl.style.width  = s.pct + '%';
+      if(s.pct < 100) log(s.m, 'warn');
+    }, s.t);
+  });
+
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    btn.disabled = false;
+    setMode(next);
+    log(`✓ SWITCH COMPLETE → ${next.toUpperCase()} MODE active. Break-before-make successful.`, 'good');
+    barEl.style.transition = 'none';
+    barEl.style.width = '0%';
+    setTimeout(()=>{ barEl.style.transition = 'width 0.45s ease'; }, 50);
+  }, 2150);
+}
+//
+const SNIPS = {
+"Main + Setup":`<span class="cm">// RBMS main.ino — ESP32-S3N16R8
+// 6-Cell Reconfigurable Battery Management System
+// Algorithms: Kalman Filter · Linear Regression
+//             Random Forest · Predictive Maintenance</span>
+<span class="kw">#include</span> <span class="str">"kalman.h"</span>
+<span class="kw">#include</span> <span class="str">"linreg.h"</span>
+<span class="kw">#include</span> <span class="str">"random_forest.h"</span>
+<span class="kw">#include</span> <span class="str">"pepper_monitor.h"</span>
+<span class="kw">#include</span> <span class="str">"switching_matrix.h"</span>
+
+<span class="kw">const int</span> RELAY_S[<span class="num">6</span>] = {<span class="num">4,5,6,7,8,9</span>};     <span class="cm">// series relays</span>
+<span class="kw">const int</span> RELAY_P[<span class="num">6</span>] = {<span class="num">10,11,12,13,14,15</span>}; <span class="cm">// parallel relays</span>
+<span class="kw">const int</span> TEMP_PIN   = <span class="num">34</span>;                  <span class="cm">// NTC thermistor</span>
+
+KalmanFilter    kf[<span class="num">6</span>];
+LinearRegression lr[<span class="num">6</span>];
+RandomForest    rf;
+PepperMonitor   pepper;
+SwitchingMatrix sw;
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  Serial.<span class="fn">begin</span>(<span class="num">115200</span>);
+  pepper.<span class="fn">begin</span>();
+  rf.<span class="fn">loadModel</span>();           <span class="cm">// from PROGMEM flash</span>
+  <span class="fn">connectWiFi</span>();
+  <span class="fn">startWebServer</span>();
+  Serial.<span class="fn">println</span>(<span class="str">"[RBMS] Ready."</span>);
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="kw">float</span> v[<span class="num">6</span>], t[<span class="num">6</span>];
+  pepper.<span class="fn">readAll</span>(v);          <span class="cm">// isolated voltage</span>
+  <span class="fn">readTemps</span>(t);              <span class="cm">// NTC thermistors</span>
+  <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>;i&lt;<span class="num">6</span>;i++) {
+    kf[i].<span class="fn">update</span>(v[i]);        <span class="cm">// filter noise</span>
+    lr[i].<span class="fn">addPoint</span>(cycle,v[i]); <span class="cm">// track fade</span>
+  }
+  <span class="kw">float</span> feat[<span class="num">6</span>][<span class="num">5</span>];
+  <span class="fn">buildFeatures</span>(v,t,feat);
+  rf.<span class="fn">predict</span>(feat);           <span class="cm">// RUL prediction</span>
+  <span class="fn">safetyCheck</span>(v,t);
+  <span class="fn">pushWebSocket</span>(v,t);
+  <span class="fn">delay</span>(<span class="num">1000</span>);
+}`,
+
+"Kalman Filter":`<span class="cm">// kalman.h — Kalman Filter (SOC estimation)
+// Removes ADC noise from Pepper circuit readings
+// Model: x(k)=x(k-1)+w   z(k)=x(k)+v
+// Q=process noise  R=measurement noise</span>
+<span class="kw">class</span> KalmanFilter {
+<span class="kw">public</span>:
+  <span class="kw">float</span> Q=<span class="num">0.001f</span>,R=<span class="num">0.01f</span>,P=<span class="num">1.f</span>,K=<span class="num">0.f</span>,x=<span class="num">3.7f</span>;
+
+  <span class="kw">float</span> <span class="fn">update</span>(<span class="kw">float</span> z) {
+    P = P + Q;           <span class="cm">// predict covariance</span>
+    K = P / (P + R);     <span class="cm">// compute gain</span>
+    x = x + K*(z-x);    <span class="cm">// update estimate</span>
+    P = (<span class="num">1.f</span>-K)*P;      <span class="cm">// update covariance</span>
+    <span class="kw">return</span> x;
+  }
+
+  <span class="kw">float</span> <span class="fn">toSOC</span>(<span class="kw">float</span> v) {    <span class="cm">// Li-ion piecewise LUT</span>
+    <span class="kw">if</span>(v&gt;=<span class="num">4.20f</span>) <span class="kw">return</span> <span class="num">100.f</span>;
+    <span class="kw">if</span>(v&lt;=<span class="num">3.00f</span>) <span class="kw">return</span> <span class="num">0.f</span>;
+    <span class="kw">return</span> (v-<span class="num">3.f</span>)/(<span class="num">4.2f</span>-<span class="num">3.f</span>)*<span class="num">100.f</span>;
+  }
+};`,
+
+"Linear Regression":`<span class="cm">// linreg.h — Least-squares linear regression
+// Tracks capacity fade: capacity = m·cycles + b
+// Predicts EOL when capacity drops below 80%</span>
+<span class="kw">class</span> LinearRegression {
+  <span class="kw">float</span> sX=<span class="num">0</span>,sY=<span class="num">0</span>,sXY=<span class="num">0</span>,sX2=<span class="num">0</span>; <span class="kw">int</span> n=<span class="num">0</span>;
+<span class="kw">public</span>:
+  <span class="kw">void</span> <span class="fn">add</span>(<span class="kw">float</span> x,<span class="kw">float</span> y){
+    sX+=x;sY+=y;sXY+=x*y;sX2+=x*x;n++;
+  }
+  <span class="kw">void</span> <span class="fn">fit</span>(<span class="kw">float</span>&amp;m,<span class="kw">float</span>&amp;b){
+    <span class="kw">float</span> d=n*sX2-sX*sX;
+    <span class="kw">if</span>(d==<span class="num">0</span>||n&lt;<span class="num">2</span>){m=<span class="num">0</span>;b=sY/max(n,<span class="num">1</span>);<span class="kw">return</span>;}
+    m=(n*sXY-sX*sY)/d; b=(sY-m*sX)/n;
+  }
+  <span class="kw">float</span> <span class="fn">eol</span>(<span class="kw">float</span> thr){
+    <span class="kw">float</span> m,b; <span class="fn">fit</span>(m,b);
+    <span class="kw">return</span> m&lt;<span class="num">0</span> ? (thr-b)/m : <span class="num">9999</span>;
+  }
+};`,
+
+"Random Forest":`<span class="cm">// random_forest.h — Predictive maintenance
+// 100-tree ensemble predicts RUL (remaining cycles)
+// Features: [Voltage, Temp, dV/dt, InternalR, Cycles]
+// Feature importance:
+//   dV/dt 38% | IR 29% | Temp 18% | Cycles 10% | V 5%</span>
+<span class="kw">class</span> RandomForest {
+  <span class="kw">static const int</span> NT=<span class="num">100</span>,NF=<span class="num">5</span>;
+  RFTree trees[NT];
+  <span class="kw">float</span> rul[<span class="num">6</span>];
+
+  <span class="kw">float</span> <span class="fn">traverse</span>(RFTree&amp;t,<span class="kw">float</span>*f){
+    <span class="kw">int</span> n=<span class="num">0</span>;
+    <span class="kw">for</span>(<span class="kw">int</span> d=<span class="num">0</span>;d&lt;<span class="num">4</span>;d++)
+      n = f[t.feat[n]]&lt;=t.thr[n]?<span class="num">2</span>*n+<span class="num">1</span>:<span class="num">2</span>*n+<span class="num">2</span>;
+    <span class="kw">return</span> t.leaf[n];
+  }
+<span class="kw">public</span>:
+  <span class="kw">void</span> <span class="fn">predict</span>(<span class="kw">float</span> f[][NF]){
+    <span class="kw">for</span>(<span class="kw">int</span> c=<span class="num">0</span>;c&lt;<span class="num">6</span>;c++){
+      <span class="kw">float</span> s=<span class="num">0</span>;
+      <span class="kw">for</span>(<span class="kw">int</span> t=<span class="num">0</span>;t&lt;NT;t++) s+=<span class="fn">traverse</span>(trees[t],f[c]);
+      rul[c]=s/NT;
+    }
+  }
+  <span class="kw">void</span> <span class="fn">loadModel</span>(){ memcpy_P(trees,RF_PROGMEM,<span class="kw">sizeof</span>(trees)); }
+};`,
+
+"Pepper Monitor":`<span class="cm">// pepper_monitor.h — Magnetically isolated
+// voltage measurement (no physical HV connection!)
+// 74HC4067 MUX → NPN transistor → Inductor
+//   → Reed switch → Voltage divider → ESP32 ADC
+// Provides total galvanic isolation from pack</span>
+<span class="kw">class</span> PepperMonitor {
+  <span class="kw">const int</span> S0=<span class="num">16</span>,S1=<span class="num">17</span>,S2=<span class="num">18</span>,S3=<span class="num">19</span>,ADC=<span class="num">36</span>;
+  <span class="kw">const float</span> VREF=<span class="num">3.3f</span>,R1=<span class="num">100e3f</span>,R2=<span class="num">47e3f</span>;
+
+  <span class="kw">void</span> <span class="fn">sel</span>(<span class="kw">int</span> ch){
+    digitalWrite(S0,ch&amp;<span class="num">1</span>); digitalWrite(S1,(ch>><span class="num">1</span>)&amp;<span class="num">1</span>);
+    digitalWrite(S2,(ch>><span class="num">2</span>)&amp;<span class="num">1</span>); digitalWrite(S3,(ch>><span class="num">3</span>)&amp;<span class="num">1</span>);
+    <span class="fn">delayMicroseconds</span>(<span class="num">500</span>); <span class="cm">// reed switch settle</span>
+  }
+  <span class="kw">float</span> <span class="fn">toV</span>(<span class="kw">int</span> r){ <span class="kw">return</span> r/<span class="num">4095.f</span>*VREF*(R1+R2)/R2; }
+<span class="kw">public</span>:
+  <span class="kw">void</span> <span class="fn">begin</span>(){ analogReadResolution(<span class="num">12</span>); }
+  <span class="kw">void</span> <span class="fn">readAll</span>(<span class="kw">float</span>*o){
+    <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>;i&lt;<span class="num">6</span>;i++){ <span class="fn">sel</span>(i); o[i]=<span class="fn">toV</span>(<span class="fn">analogRead</span>(ADC)); }
+  }
+};
+<span class="kw">float</span> <span class="fn">readNTC</span>(<span class="kw">int</span> p){          <span class="cm">// NTC B-parameter</span>
+  <span class="kw">float</span> r=<span class="num">10000.f</span>*<span class="fn">analogRead</span>(p)/(<span class="num">4095.f</span>-<span class="fn">analogRead</span>(p));
+  <span class="kw">return</span> <span class="num">1.f</span>/(<span class="num">1.f</span>/<span class="num">298.15f</span>+log(r/<span class="num">10000.f</span>)/<span class="num">3950.f</span>)-<span class="num">273.15f</span>;
+}`,
+
+"Switching Matrix":`<span class="cm">// switching_matrix.h — SPDT relay controller
+// BREAK-before-MAKE · prevents short circuits
+// Series  → discharge: Vout = Σ(Vcell) ~22.2V
+// Parallel→ charging : self-balancing via physics
+// DW01A per-cell IC acts as backup protection</span>
+<span class="kw">class</span> SwitchingMatrix {
+  <span class="kw">const int</span> BRK=<span class="num">50</span>,MK=<span class="num">10</span>; <span class="kw">bool</span> ser=<span class="kw">true</span>;
+
+  <span class="kw">void</span> <span class="fn">breakAll</span>(){
+    <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>;i&lt;<span class="num">6</span>;i++){
+      digitalWrite(RELAY_S[i],LOW);
+      digitalWrite(RELAY_P[i],LOW);
+    }
+    <span class="fn">delay</span>(BRK); <span class="cm">// wait mechanical travel</span>
+  }
+<span class="kw">public</span>:
+  <span class="kw">void</span> <span class="fn">toSeries</span>(){
+    <span class="fn">breakAll</span>();                <span class="cm">// BREAK first!</span>
+    <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>;i&lt;<span class="num">6</span>;i++){
+      digitalWrite(RELAY_S[i],HIGH); <span class="fn">delay</span>(MK);
+    }
+    ser=<span class="kw">true</span>;
+  }
+  <span class="kw">void</span> <span class="fn">toParallel</span>(){
+    <span class="fn">breakAll</span>();                <span class="cm">// BREAK first!</span>
+    <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>;i&lt;<span class="num">6</span>;i++){
+      digitalWrite(RELAY_P[i],HIGH); <span class="fn">delay</span>(MK);
+    }
+    ser=<span class="kw">false</span>;
+  }
+  <span class="kw">bool</span> <span class="fn">ok</span>(<span class="kw">float</span>*v,<span class="kw">float</span> t){
+    <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>;i&lt;<span class="num">6</span>;i++) <span class="kw">if</span>(v[i]&gt;<span class="num">4.25f</span>||v[i]&lt;<span class="num">2.95f</span>) <span class="kw">return false</span>;
+    <span class="kw">return</span> t&lt;<span class="num">60.f</span>;
+  }
+};`
+};
+
+let activeTab = Object.keys(SNIPS)[0];
+function renderTabs() {
+  document.getElementById('codeTabBar').innerHTML =
+    Object.keys(SNIPS).map(k =>
+      `<button class="ctab ${k===activeTab?'on':''}" onclick="pickTab('${k}')">${k}</button>`
+    ).join('');
+  const fname = activeTab==='Main + Setup' ? 'main.ino' : activeTab.toLowerCase().replace(/ +/g,'_')+'.h';
+  document.getElementById('codeBlock').innerHTML = `
+    <div class="code-hdr">
+      <span>${fname}</span>
+      <span class="code-lang">ARDUINO C++</span>
+    </div>
+    <pre>${SNIPS[activeTab]}</pre>`;
+}
+function pickTab(k){ activeTab=k; renderTabs(); }
+
+// ── Init ─────────────────────────────────────────────
+window.addEventListener('load', () => {
+  document.getElementById('sysTime').textContent = ts();
+  renderCells();
+  renderKalman();
+  renderRF();
+  renderTabs();
+  drawTopo();
+  log('RBMS Dashboard initialised — firmware modules loaded','good');
+  log('Hardware status: OFFLINE — no sensor data available','danger');
+  log('6 cells registered in config — awaiting live connection','info');
+  log('Kalman filters ready · Q=0.001  R=0.010','info');
+  log('Random Forest · 100 trees · 5 features — standby','info');
+  log('Linear Regression tracker · 0 data points — standby','info');
+  log('Switching matrix armed · break-before-make ready','info');
+  log('Connect ESP32-S3N16R8 via USB/Wi-Fi to populate data','warn');
+});
+</script>
+</body>
+</html>
